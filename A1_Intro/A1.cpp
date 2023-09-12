@@ -1,20 +1,31 @@
+// Created a program to calculate the time taken for a ball 
+// to fall from a height h  and the height of a ball after n
+// bounces.
+//
+// Raghav Sharma, University of Toronto 2023
+
 #include <iostream>
 #include <fstream>
 #include <cmath>
+#include <memory>
 using namespace std;
 
+// Function to calculate the time taken for a ball to fall from a height h
 float bouncy_time(float h)
 {
     float t = sqrt(2 * h / 9.81);
     return t;
 }
 
+// Function to calculate the height of a ball after n bounces
 void bouncy_height(float h_avg, int n, ofstream& outfile)
 {
     int i;
-    float* h = new float[n];
-    float* t = new float[n];
+    std::unique_ptr<float[]> h(new float[n]);
+    std::unique_ptr<float[]> t(new float[n]);
     
+    // Initialize for loop to calculate ball heights and corresponding
+    // times for each bounce
     for (i = 0; i < n; i++)
     {
         h[i] = h_avg * i / (2 * n);
@@ -25,13 +36,11 @@ void bouncy_height(float h_avg, int n, ofstream& outfile)
     {
         outfile << "Bouncy Height: " << h[i] << "m, Bouncy Time: " << t[i] << "s" << endl;
     }
-    
-    delete[] h;
-    delete[] t;
 }
 
 int main() 
 {
+    // Prompt user for input
     int n_in;
     float h_in;
     cout << "Give me number of balls and average height: ";
@@ -41,6 +50,7 @@ int main()
     string filename = "bouncy_output.txt";
     ofstream outfile(filename);
 
+    // Create file if it does not exist
     if (!outfile)
     {
         cerr << "Error: Unable to open the file " << filename << " in the current directory." << endl;
