@@ -1,105 +1,90 @@
-// gameof1dfixed.cpp
-
 #include <iostream>
-#include <memory>
-
-// Make three functions, one that first fills cell array,
-// one that updates cells, and one that outputs
+#include <vector>
 
 const bool alive = true;
 const bool dead = false;
 
-auto initialize_board(int num_cells, int num_steps, double target_alive_fraction)
-{
-    // Simulation creation
-    auto cell = std::make_unique<bool[]>(num_cells);
-    
-    // Fill cells for the first time step such that the fraction of
-    // alive cells is approximately target_alive_fraction.
-    double fill = 0.0;
-    for (int i = 0; i < num_cells; i++) {
-        fill += target_alive_fraction;
-        if (fill >= 1.0) {
-            cell[i] = alive;
-            fill -= 1.0;
-        } else {
-            cell[i] = dead;
-        }
+// Function to initialize the cell board with a target alive fraction
+std::vector<bool> initializeBoard(int numCells, double targetAliveFraction) {
+    std::vector<bool> cell(numCells, dead);
+    int numAlive = static_cast<int>(numCells * targetAliveFraction);
+
+    for (int i = 0; i < numAlive; i++) {
+        cell[i] = alive;
     }
+
     return cell;
 }
 
-bool next_cell_state(const std::unique_ptr<bool[]>& cell_state,
-                     int cell_index, int num_cells)
-{
-    // count neighbours around cell_index
-    // the modulus operator (%) enforces periodic boundary conditions
-    int alive_neighbours = 0;   
-    for (int j = 1; j <= 2; j++) {
-        if (cell_state[(cell_index+j+num_cells)%num_cells] == alive)
-            alive_neighbours++;
-        if (cell_state[(cell_index-j+num_cells)%num_cells] == alive)
-            alive_neighbours++;
-    }   
-    // Use model rules for birth and survival.        
-    if (cell_state[cell_index] == alive
-        and
-        (alive_neighbours==2 or alive_neighbours==4)) {
-        return alive;
-    } else if (cell_state[cell_index] == dead
-               and
-               (alive_neighbours==2 or alive_neighbours==3)) {
-        return alive;
-    } else {
-        return dead;
+// Function to count the number of alive neighbors for a cell
+int countAliveNeighbors(const std::vector<bool>& cell, int cellIndex) {
+    int numAlive = 0;
+    int numCells = cell.size();
+
+    for (int offset : {-1, 1}) {
+        int neighborIndex = (cellIndex + offset + numCells) % numCells;
+        if (cell[neighborIndex] == alive) {
+            numAlive++;
+        }
     }
+
+    return numAlive;
 }
 
-int main(int argc, char* argv[])
-{
-    // Set simulation parameters
-    int num_cells = 70;
-    int num_steps = 120;
-    double target_alive_fraction = 0.35; 
+// Function to update the cell board based on Game of Life rules
+std::vector<bool> updateCells(const std::vector<bool>& cell) {
+    int numCells = cell.size();
+    std::vector<bool> newCell(numCells);
 
-    auto cell = initialize_board(num_cells, num_steps, target_alive_fraction); 
-    // Output 
-    double alive_fraction = 0.0;
-    for (int i = 0; i < num_cells; i++) {
+    for (int i = 0; i < numCells; i++) {
+        int aliveNeighbors = countAliveNeighbors(cell, i);
+
+        if (cell[i] == alive && (aliveNeighbors == 2 || aliveNeighbors == 4)) {
+            newCell[i] = alive;
+        } else if (cell[i] == dead && (aliveNeighbors == 2 || aliveNeighbors == 3)) {
+            newCell[i] = alive;
+        }
+    }
+
+    return newCell;
+}
+
+// Function to output the cell board state along with a step number
+void output(const std::vector<bool>& cell, int step) {
+    int numCells = cell.size();
+    double aliveFraction = 0.0;
+
+    for (int i = 0; i < numCells; i++) {
         if (cell[i] == alive) {
-            alive_fraction += 1;
+            aliveFraction += 1;
+            std::cout << 'I';
+        } else {
+            std::cout << '-';
         }
     }
-    alive_fraction /= num_cells;
-    std::cout << 0 << "\t";
-    for (int i = 0; i < num_cells; i++) {
-        std::cout << ((cell[i]==alive)?'I':'-');
-    }
-    std::cout << " " << alive_fraction;
-    std::cout << "\n";
-    
+
+    aliveFraction /= numCells;
+    std::cout << " " << aliveFraction << "\n";
+}
+
+int main() {
+    int numCells, numSteps;
+    double targetAliveFraction;
+
+    // Set simulation parameters by user input
+    std::cout << "Provide number of cells, number of steps, and target alive fraction: ";
+    std::cin >> numCells >> numSteps >> targetAliveFraction;
+
+    std::vector<bool> cell = initializeBoard(numCells, targetAliveFraction);
+
+    // Output initial state
+    output(cell, 0);
+
     // Evolution loop
-    for (int t = 0; t < num_steps; t++) {
-        
-        // Update cells
-        auto newcell = std::make_unique<bool[]>(num_cells);
-        for (int i = 0; i < num_cells; i++) {
-            newcell[i] = next_cell_state(cell,i,num_cells);
-        }
-        std::swap(cell, newcell);
-
-        // Output
-        alive_fraction = 0.0;
-        for (int i = 0; i < num_cells; i++) {
-            alive_fraction += cell[i];
-        }
-        alive_fraction /= num_cells;
-        std::cout << t+1 << "\t"; 
-        for (int i = 0; i < num_cells; i++) {
-            std::cout << ((cell[i]==alive)?'I':'-');
-        }           
-        std::cout << " " << alive_fraction;
-        std::cout << "\n";
-
+    for (int t = 1; t <= numSteps; t++) {
+        cell = updateCells(cell);
+        output(cell, t);
     }
+
+    return 0;
 }
